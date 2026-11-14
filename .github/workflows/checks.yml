@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# Lint: the tools' own tests, the record checker and the privacy checker (commit history included).
+name: checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the pull request head, not GitHub's synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - name: Tool tests
+        run: python -B -m unittest discover -s tools/tests -v
+      - name: Records
+        run: python -B tools/check_records.py
+      - name: Privacy (working tree and the commits of the pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          $mergeBase = git merge-base $env:BASE_SHA HEAD
+          if ($LASTEXITCODE -ne 0 -or -not $mergeBase) {
+            throw "git merge-base $env:BASE_SHA HEAD failed (exit $LASTEXITCODE)"
+          }
+          python -B tools/check_privacy.py --history $mergeBase
+      - name: Privacy (working tree and every commit)
+        if: github.event_name != 'pull_request'
+        run: python -B tools/check_privacy.py --all

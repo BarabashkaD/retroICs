@@ -1,0 +1,17 @@
+retroICs
+Copyright (c) 2026, Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+
+Contains retroICs / retroMachines by Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD, BSD-3-Clause and CC BY 4.0. Credit to Dmitry Veremeev (BarabashkaD) must be kept in copies and derived works.
+
+The owner's code is under BSD-3-Clause (LICENSE, LICENSES/BSD-3-Clause.txt). The owner's docs
+(records, equivalents, implementation notes, AGENTS files, the files under docs/) are under CC BY 4.0
+(LICENSES/CC-BY-4.0.txt).
+
+Third-party files keep their own licence, named in each file's header and in LICENSES/. None is in
+the repository yet; these come when the models are imported (planned):
+- CC BY 3.0 (LICENSES/CC-BY-3.0.txt): the die-derived 8080 model and its upstream author's header.
+- LicenseRef-Tselikov-BSD (LICENSES/LicenseRef-Tselikov-BSD.txt): the 8257 and 8275 models, which
+  derive from Dmitry Tselikov's code.
+
+Source documents (data sheets) keep their own status, written in each datasheets/index.md. They are
+not relicensed.
