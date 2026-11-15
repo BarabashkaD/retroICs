@@ -1,0 +1,19 @@
+diff --git a/ics/intel/8257/rtl/intel_8257.v b/ics/intel/8257/rtl/intel_8257.v
+index de0ef08..e862ad4 100644
+--- a/ics/intel/8257/rtl/intel_8257.v
++++ b/ics/intel/8257/rtl/intel_8257.v
+@@ -103,10 +103,10 @@ wire [3:0] en_after = mode[3:0] & ~(tc_off ? (4'd1 << ch) : 4'd0);
+ wire [1:0] top_after = mode[4] ? ch + 2'd1 : 2'd0;
+ wire [2:0] p4 = pick(drq & en_after, top_after);
+ // the address and count change at θ↑ after S4 ([C78] 12-109 TAH: valid through the strobes)
+-wire upd_now = th_up && done;
+-wire [1:0] uch = done_ch;
+-wire utc = done_tc;
+-wire uupd = done_upd;
++wire upd_now = th_dn && state == S4;
++wire [1:0] uch = ch;
++wire utc = tc_now;
++wire uupd = upd_cyc;
+ assign dack_n = dack_on ? ~(4'd1 << ch) : 4'hF;
+ // the finished transfer's address holds from the θ↓ that ends S4 to the update at θ↑ (rel 36-39), also when the next
+ // cycle switches channel or reloads channel 2 (TAHR: valid after IOR↑ / MEMR↑)

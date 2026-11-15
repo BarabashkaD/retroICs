@@ -2,11 +2,11 @@
 
 ## Scope
 
-The Intel 8080A (КР580ВМ80А): its data sheet record, equivalents and data sheet index. RTL in the fork's `rk86_16` (https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`) until the RTL is imported (`k580vm80a.v`, the die-derived КР580ВМ80А model).
+The Intel 8080A (КР580ВМ80А): its data sheet record, equivalents and data sheet index. RTL: `rtl/upstream/k580vm80a.v`, Vslav's die-derived КР580ВМ80А model (taken from MiSTer-devel/Apogee_MiSTer `rtl/k580vm80a.v` at `4b37da2`, line endings CR LF to LF, otherwise unchanged), under the owner's wrapper `rtl/intel_8080a.v` (module `intel_8080a`, instance `core`; `README.md`, Model status).
 
 ## Files
 
-`README.md`, `record.md` (CPU-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md`. The RTL, TBs and faults come when the RTL is imported.
+`README.md`, `record.md` (CPU-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md` and the stored data sheets `datasheets/*.pdf`, `component.toml`, `rtl/intel_8080a.v`, `rtl/upstream/k580vm80a.v`. No TB or faults of its own yet.
 
 ## Commands
 
@@ -28,5 +28,5 @@ python -B -m unittest discover -s tools/tests -v
 
 ## Pitfalls
 
+- `rtl/upstream/k580vm80a.v` stays byte-identical as it came in (`tools/tests/test_headers.py` checks it). Hierarchical paths into the CPU (TBs, power-up files) go through the wrapper's instance: `<inst>.core.<name>`; the pins also resolve on the wrapper.
 - Emulators ([MAME], [EMU], [APG]) are comparison-only, never a source of behaviour.
-- "Task 1 record" names the section "Timing reference for 0.8.0 (Task 1 record)": a in the 8224 record, b in the 8257 record, d in the 8275 record; c (the 8275 pins on the boards) is board wiring, in the RK86 board record (planned, retroComputersDocs).

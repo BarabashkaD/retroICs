@@ -11,8 +11,8 @@ Three 8-bit ports (A, B, C) in mode 0 (basic input / output), mode 1 (strobed) o
 
 ## Model status
 
-RTL in the fork's `rk86_16` until the RTL is imported: `k580vv55.v` of karabas-go-core-rk86
-(https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`, `src/rtl/rk86_16/`).
+`rtl/intel_8255a.v` (module `intel_8255a`), `tb/tb_vv55.v` and `faults/` are the owner's, written
+to the Intel data sheet. Manifest `component.toml`.
 
 ## Equivalents
 
@@ -28,5 +28,6 @@ Details: `equivalents.md`.
 
 ## Licence
 
-The docs of this folder: CC BY 4.0 (`NOTICE`). Data sheets keep their own status
-(`datasheets/index.md`).
+- RTL, TB, faults and `component.toml`: BSD-3-Clause, the owner.
+- The docs of this folder (the Markdown files): CC BY 4.0, the owner (`NOTICE`).
+- Data sheets: third-party documents with their own status (`datasheets/index.md`).

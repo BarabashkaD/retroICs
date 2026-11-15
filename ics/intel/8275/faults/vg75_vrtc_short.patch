@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8275/rtl/intel_8275.v b/ics/intel/8275/rtl/intel_8275.v
+index 1ca87ae..56d77c9 100644
+--- a/ics/intel/8275/rtl/intel_8275.v
++++ b/ics/intel/8275/rtl/intel_8275.v
+@@ -158,7 +158,7 @@ endfunction
+ // the start of row rn: VRTC, the buffer swap, the underrun check, the fill of the next row
+ task row_start(input [6:0] rn);
+     begin
+-        vrtc <= rn > r_last;
++        vrtc <= rn > r_last + 7'd1;
+         if (rn == r_last + 7'd1) begin                 // VRTC rises: field attributes and End of Screen reset
+             frame <= frame + 5'd1; eos <= 1'b0; fa <= 6'd0; fa_row <= 6'd0;
+         end else fa_row <= fa;

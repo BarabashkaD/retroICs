@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+import io
 import sys
 import tempfile
+from contextlib import redirect_stderr, redirect_stdout
 import unittest
 from pathlib import Path
 
@@ -13,10 +15,10 @@ REGISTRY = """# Record IDs
 | Prefix | Home | Status | IDs |
 |---|---|---|---|
 | PPI | retroICs/ics/intel/8255a/record.md | here | |
-| CLK | retroICs/ics/intel/8224/record.md | here | |
-| CLK | retroComputersDocs/computers/rk86/board.md | external | CLK-20, CLK-21 |
-| VID | retroComputersDocs/computers/rk86/board.md | pending | |
-| RK86M-DEV | retroMachines/machines/rk86/implementation.md | external | |
+| OSC | retroICs/ics/acme/clock/record.md | here | |
+| OSC | retroComputersDocs/computers/demo/board.md | external | OSC-20, OSC-21 |
+| BRD | retroComputersDocs/computers/demo/board.md | pending | |
+| DEMO-DEV | consumer/machines/demo/implementation.md | external | |
 """
 
 SOURCES = """# Sources
@@ -62,33 +64,29 @@ class IdParsing(unittest.TestCase):
         self.assertEqual(cr.defined_ids(text), {"PPI-D1", "PPI-E2", "PPI-M3"})
 
     def test_dev_ids(self):
-        text = "| RK86M-DEV-1 | a |\n| RKPOCKET-DEV-2 | b |\n"
-        self.assertEqual(cr.defined_ids(text), {"RK86M-DEV-1", "RKPOCKET-DEV-2"})
-
-    def test_legacy_list_items(self):
-        text = "| PPI-1 | a |\n- PPI-D1 (RESET text): x\n- CLK-5/6: y\nprose PPI-9\n"
-        self.assertEqual(cr.legacy_ids(text), {"PPI-1", "PPI-D1", "CLK-5"})
+        text = "| DEMO-DEV-1 | a |\n| PROJ-DEV-2 | b |\n"
+        self.assertEqual(cr.defined_ids(text), {"DEMO-DEV-1", "PROJ-DEV-2"})
 
     def test_silent_bullet_without_id_kept(self):
-        text = ("#### SILENT (CLK)\n\n- CLK-1: phase open,\n  continued line\n"
-                "- The power-up count (no reset).\n\n#### SILENT (IE4)\n- IE4-9: other\n")
+        text = ("#### SILENT (OSC)\n\n- OSC-1: phase open,\n  continued line\n"
+                "- The power-up count (no reset).\n\n#### SILENT (CNT)\n- CNT-9: other\n")
         self.assertEqual(
-            cr.silent_bullets(text, "CLK"),
-            ["CLK-1: phase open, continued line", "The power-up count (no reset)."])
-        self.assertEqual(cr.silent_bullets(text, "IE4"), ["IE4-9: other"])
+            cr.silent_bullets(text, "OSC"),
+            ["OSC-1: phase open, continued line", "The power-up count (no reset)."])
+        self.assertEqual(cr.silent_bullets(text, "CNT"), ["CNT-9: other"])
         self.assertEqual(cr.silent_bullets(text, "PPI"), [])
 
 
 class Brackets(unittest.TestCase):
     def test_source_ids(self):
-        text = ("[ГФ24] [ВМ80] [ИЕ4] [7490] [2716] [74198] [C78] [AP-62] [R87-…] [R87-3] [D8275K] "
+        text = ("[ВГ75] [ВМ80] [ВВ55] [8275] [2716] [74198] [C78] [AP-62] [R87-…] [R87-3] [D8275K] "
                 "[ИР13] [ТМ2]")
         self.assertEqual(cr.BRACKET.findall(text),
-                         ["ГФ24", "ВМ80", "ИЕ4", "7490", "2716", "74198", "C78", "AP-62", "R87-…",
+                         ["ВГ75", "ВМ80", "ВВ55", "8275", "2716", "74198", "C78", "AP-62", "R87-…",
                           "R87-3", "D8275K", "ИР13", "ТМ2"])
 
     def test_not_source_ids(self):
-        text = ("bits [5:3] and [15:8], a [Link](x.md), [ГФ24](x.md), [7490](y.md), [12], [7], "
+        text = ("bits [5:3] and [15:8], a [Link](x.md), [ВГ75](x.md), [8275](y.md), [12], [7], "
                 "[x], [ ], [a-b], [0..7], [read me]")
         self.assertEqual(cr.BRACKET.findall(text), [])
 
@@ -112,8 +110,8 @@ class Registry(unittest.TestCase):
         self.assertEqual(reg["PPI"].status, "here")
         self.assertIsNone(reg["PPI"].ids)
         listed = [r for r in reg.values() if r.ids]
-        self.assertEqual(listed[0].ids, frozenset({"CLK-20", "CLK-21"}))
-        self.assertEqual(reg["RK86M-DEV"].status, "external")
+        self.assertEqual(listed[0].ids, frozenset({"OSC-20", "OSC-21"}))
+        self.assertEqual(reg["DEMO-DEV"].status, "external")
 
     def test_bad_status_fails(self):
         with tempfile.TemporaryDirectory() as d:
@@ -125,21 +123,17 @@ class Registry(unittest.TestCase):
 
 
 class Check(unittest.TestCase):
-    def run_check(self, records, legacy_text=None, docs=None, **kw):
+    def run_check(self, records, docs=None, record_dirs=("ics",), **kw):
         with tempfile.TemporaryDirectory() as d:
             root = make_repo(Path(d) / "repo", records, **kw)
-            legacy = None
-            if legacy_text is not None:
-                legacy = Path(d) / "legacy.md"
-                legacy.write_text(legacy_text, encoding="utf-8", newline="\n")
-            docs_root = None
-            if docs is not None:
-                docs_root = Path(d) / "docs-repo"
-                for rel, text in docs.items():
-                    p = docs_root / rel
+            external = {}
+            for repo, files in (docs or {}).items():
+                external[repo] = Path(d) / repo
+                for rel, text in files.items():
+                    p = external[repo] / rel
                     p.parent.mkdir(parents=True, exist_ok=True)
                     p.write_text(text, encoding="utf-8", newline="\n")
-            return cr.check(root, legacy, docs_root)
+            return cr.check(root, external, record_dirs)
 
     @staticmethod
     def errors(lines):
@@ -179,25 +173,25 @@ class Check(unittest.TestCase):
         self.assertIn("source", out[0])
 
     def test_pending_prefix_passes(self):
-        rec = PPI_RECORD + "\nBoard item VID-3 is pending.\n"
+        rec = PPI_RECORD + "\nBoard item BRD-3 is pending.\n"
         out = self.run_check({"ics/intel/8255a/record.md": rec})
         self.assertEqual(self.errors(out), [])
 
     def test_split_prefix_listed_ids(self):
         recs = {
-            "ics/intel/8224/record.md": "| CLK-1 | a |\n\nand CLK-20 lives on the board.\n",
+            "ics/acme/clock/record.md": "| OSC-1 | a |\n\nand OSC-20 lives on the board.\n",
             "ics/intel/8255a/record.md": PPI_RECORD,
         }
         out = self.run_check(recs)
         self.assertEqual(self.errors(out), [])
-        # CLK-20 may not be defined here
-        recs["ics/intel/8224/record.md"] += "| CLK-21 | wrong place |\n"
+        # OSC-20 may not be defined here
+        recs["ics/acme/clock/record.md"] += "| OSC-21 | wrong place |\n"
         out = self.errors(self.run_check(recs))
-        self.assertTrue(any("CLK-21" in l for l in out))
-        # CLK-22 is neither listed nor defined
-        recs["ics/intel/8224/record.md"] = "| CLK-1 | a |\n\nCLK-22\n"
+        self.assertTrue(any("OSC-21" in l for l in out))
+        # OSC-22 is neither listed nor defined
+        recs["ics/acme/clock/record.md"] = "| OSC-1 | a |\n\nOSC-22\n"
         out = self.errors(self.run_check(recs))
-        self.assertTrue(any("CLK-22" in l for l in out))
+        self.assertTrue(any("OSC-22" in l for l in out))
 
     def test_duplicate_definition_fails(self):
         recs = {
@@ -207,44 +201,109 @@ class Check(unittest.TestCase):
         out = self.errors(self.run_check(recs))
         self.assertTrue(any("PPI-1" in l and "twice" in l for l in out))
 
-    def test_legacy_gate(self):
-        legacy = "| PPI-1 | a |\n| PPI-2 | b |\n- PPI-D1 (x): y\n| VID-1 | pending |\n"
-        recs = {"ics/intel/8255a/record.md": PPI_RECORD}
-        out = self.errors(self.run_check(recs, legacy_text=legacy))
-        self.assertEqual(len(out), 1)
-        self.assertIn("PPI-2", out[0])
-        recs["ics/intel/8255a/record.md"] += "| PPI-2 | now defined |\n"
-        out = self.errors(self.run_check(recs, legacy_text=legacy))
-        self.assertEqual(out, [])
-
-    def test_docs_root_absent_reports_not_checked(self):
-        legacy = "| CLK-20 | board |\n| RK86M-DEV-1 | dev |\n"
-        recs = {"ics/intel/8255a/record.md": PPI_RECORD}
-        out = self.run_check(recs, legacy_text=legacy)
+    def test_external_root_absent_reports_not_checked(self):
+        recs = {"ics/intel/8255a/record.md": PPI_RECORD + "\nThe board item OSC-20.\n"}
+        out = self.run_check(recs)
         self.assertEqual(self.errors(out), [])
-        self.assertTrue(any("board IDs not checked" in l for l in out))
+        self.assertTrue(any("retroComputersDocs" in l and "not checked" in l for l in out), out)
 
-    def test_docs_root_present_checks_external(self):
-        legacy = "| CLK-20 | board |\n"
-        recs = {"ics/intel/8255a/record.md": PPI_RECORD}
-        out = self.errors(self.run_check(recs, legacy_text=legacy, docs={"b.md": "| CLK-99 | x |\n"}))
-        self.assertTrue(any("CLK-20" in l for l in out))
-        out = self.run_check(recs, legacy_text=legacy, docs={"b.md": "| CLK-20 | x |\n"})
+    def test_external_root_present_checks_external(self):
+        recs = {"ics/intel/8255a/record.md": PPI_RECORD + "\nThe board item OSC-20.\n"}
+        bad = {"retroComputersDocs": {"b.md": "| OSC-99 | x |\n"}}
+        out = self.errors(self.run_check(recs, docs=bad))
+        self.assertTrue(any("OSC-20" in l for l in out))
+        out = self.run_check(recs, docs={"retroComputersDocs": {"b.md": "| OSC-20 | x |\n"}})
         self.assertEqual(out, [])
 
-    def test_missing_docs_root_fails(self):
+    def test_external_keyed_by_repo(self):
+        # two repos named by external rows; only one root given: the other gives one NOTE
+        recs = {"ics/intel/8255a/record.md": PPI_RECORD + "\nOSC-20 and DEMO-DEV-1.\n"}
+        docs = {"retroComputersDocs": {"b.md": "| OSC-20 | x |\n"}}
+        out = self.run_check(recs, docs=docs)
+        self.assertEqual(self.errors(out), [])
+        notes = [l for l in out if l.startswith("NOTE")]
+        self.assertEqual(len(notes), 1, out)
+        self.assertIn("consumer", notes[0])
+        # an ID of the given repo that its root does not define is a problem
+        recs["ics/intel/8255a/record.md"] += "And OSC-21.\n"
+        out = self.errors(self.run_check(recs, docs=docs))
+        self.assertTrue(any("OSC-21" in l for l in out), out)
+
+    def test_missing_external_root_fails(self):
         with tempfile.TemporaryDirectory() as d:
             root = make_repo(Path(d) / "repo", {"ics/intel/8255a/record.md": PPI_RECORD})
-            out = cr.check(root, None, Path(d) / "nope")
-        self.assertTrue(any("docs root" in l for l in out))
+            out = cr.check(root, {"retroComputersDocs": Path(d) / "nope"})
+        self.assertTrue(any("external root" in l and "nope" in l for l in out), out)
 
-    def test_missing_docs_root_only_the_error(self):
-        # an external ID is referenced, but the "not checked" note would contradict --docs
+    def test_missing_external_root_only_the_error(self):
+        # an external ID is referenced, but a "not checked" note would contradict the given root
         with tempfile.TemporaryDirectory() as d:
-            recs = {"ics/intel/8224/record.md": "| CLK-1 | a |\n\nCLK-20 is on the board.\n"}
+            recs = {"ics/acme/clock/record.md": "| OSC-1 | a |\n\nOSC-20 is on the board.\n"}
             root = make_repo(Path(d) / "repo", recs)
-            out = cr.check(root, None, Path(d) / "nope")
-        self.assertEqual(out, ["docs root nope not found"])
+            out = cr.check(root, {"retroComputersDocs": Path(d) / "nope"})
+        self.assertEqual(out, ["external root retroComputersDocs (nope) not found"])
+
+    def test_records_dir_option(self):
+        registry = ("| Prefix | Home | Status | IDs |\n|---|---|---|---|\n"
+                    "| ABC | demo/machines/x/record.md | here | |\n")
+        recs = {"machines/x/record.md": "| ABC-1 | a [C78] |\n",
+                "machines/x/README.md": "See ABC-1 and ABC-2.\n"}
+        out = self.errors(self.run_check(recs, registry=registry, record_dirs=("machines",)))
+        self.assertEqual(len(out), 1, out)
+        self.assertIn("ABC-2", out[0])
+        # without --records machines the README is not read
+        self.assertEqual(self.errors(self.run_check(recs, registry=registry)), [])
+
+    def test_definitions_from_home_file(self):
+        registry = ("| Prefix | Home | Status | IDs |\n|---|---|---|---|\n"
+                    "| BRD | demo/computers/x/board.md | here | |\n"
+                    "| WIRE | demo/computers/x/wire.md | here | |\n")
+        board = ("| BRD-1 | the video path |\n| RS-232 receiver | not an ID |\n"
+                 "| WIRE-3 | not this file's prefix |\n\nSee BRD-1.\n")
+        recs = {"computers/x/board.md": board, "computers/x/wire.md": "| WIRE-1 | a |\n"}
+        out = self.errors(self.run_check(recs, registry=registry, record_dirs=("computers",)))
+        self.assertEqual(len(out), 1, out)
+        self.assertIn("WIRE-3", out[0])
+        self.assertIn("not defined", out[0])
+
+    def test_here_rows_name_one_repo(self):
+        registry = ("| Prefix | Home | Status | IDs |\n|---|---|---|---|\n"
+                    "| PPI | a/ics/x/record.md | here | |\n| CPU | b/ics/y/record.md | here | |\n")
+        out = self.run_check({"ics/x/record.md": "| PPI-1 | a |\n"}, registry=registry)
+        self.assertTrue(any("more than one repo" in l for l in out), out)
+
+    def test_retired_id_defined_is_a_problem(self):
+        registry = REGISTRY + "| PPI | - | retired | PPI-10 |\n"
+        rec = PPI_RECORD + "| PPI-10 | moved out |\n"
+        out = self.errors(self.run_check({"ics/intel/8255a/record.md": rec}, registry=registry))
+        self.assertTrue(any("PPI-10" in l and "retired" in l for l in out), out)
+
+    def test_retired_id_referenced_is_fine(self):
+        registry = REGISTRY + "| PPI | - | retired | PPI-10 |\n"
+        rec = PPI_RECORD + "\nPPI-10 left this record.\n"
+        out = self.errors(self.run_check({"ics/intel/8255a/record.md": rec}, registry=registry))
+        self.assertEqual(out, [])
+
+    def test_retired_whole_prefix(self):
+        registry = REGISTRY.replace("| OSC | retroICs/ics/acme/clock/record.md | here | |\n",
+                                    "| OSC | - | retired | |\n")
+        rec = PPI_RECORD + "\nOSC-3 is gone.\n"
+        out = self.errors(self.run_check({"ics/intel/8255a/record.md": rec}, registry=registry))
+        self.assertEqual(out, [])
+        out = self.errors(self.run_check({"ics/intel/8255a/record.md": rec + "| OSC-3 | x |\n"},
+                                         registry=registry))
+        self.assertTrue(any("OSC-3" in l and "retired" in l for l in out), out)
+
+    def test_cli_external_needs_name(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = make_repo(Path(d) / "repo", {"ics/intel/8255a/record.md": PPI_RECORD})
+            with self.assertRaises(SystemExit) as cm, redirect_stderr(io.StringIO()):
+                cr.main(["--repo", str(root), "--external", str(d)])
+            self.assertEqual(cm.exception.code, 2)
+            with redirect_stdout(io.StringIO()) as out:
+                code = cr.main(["--repo", str(root), "--external", "retroComputersDocs=" + d,
+                                "--records", "ics"])
+            self.assertEqual(code, 0, out.getvalue())
 
     def test_cyrillic_and_digit_first_sources_checked(self):
         rec = PPI_RECORD + "\nAlso [ЖЖ1], [7400] and [C78].\n"

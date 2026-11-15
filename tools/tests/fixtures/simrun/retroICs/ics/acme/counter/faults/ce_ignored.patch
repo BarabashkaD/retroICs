@@ -1,0 +1,12 @@
+diff --git a/ics/acme/counter/rtl/acme_counter.v b/ics/acme/counter/rtl/acme_counter.v
+index 4071d16..10f62f7 100644
+--- a/ics/acme/counter/rtl/acme_counter.v
++++ b/ics/acme/counter/rtl/acme_counter.v
+@@ -10,6 +10,6 @@ module acme_counter #(parameter WIDTH = 8) (
+     always @(posedge clk)
+         if (reset)
+             q <= {WIDTH{1'b0}};
+-        else if (ce)
++        else
+             q <= q + 1'b1;
+ endmodule

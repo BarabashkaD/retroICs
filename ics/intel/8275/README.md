@@ -11,8 +11,12 @@ cursor, light pen, character and field attributes.
 
 ## Model status
 
-RTL in the fork's `rk86_16` until the RTL is imported: `k580vg75.v` of karabas-go-core-rk86
-(https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`, `src/rtl/rk86_16/`).
+`rtl/intel_8275.v` was rewritten by the owner to the Intel 8275 data sheets (2026) from Dmitry
+Tselikov's `k580vg75.sv` with Sorgelig's modifications, of MiSTer-devel/Apogee_MiSTer at
+`4b37da2`; kept from that base: the two row buffers and FIFOs indexed by the buffer select, the
+parameter state machine, the status byte layout; the module renamed (`k580vg75` to `intel_8275`,
+in comments too). It stays under Tselikov's licence as a derived work. `tb/tb_vg75.v`,
+`tb/tb_vg75_dma.v`, `tb/tb_vg75_attr.v` and `faults/` are the owner's. Manifest `component.toml`.
 
 ## Equivalents
 
@@ -28,5 +32,10 @@ Details: `equivalents.md`.
 
 ## Licence
 
-The docs of this folder: CC BY 4.0 (`NOTICE`). Data sheets keep their own status
-(`datasheets/index.md`).
+- `rtl/intel_8275.v`: LicenseRef-Tselikov-BSD (`LICENSES/LicenseRef-Tselikov-BSD.txt`), Dmitry
+  Tselikov 2011, Sorgelig's modifications (named as a contributor in the header) and the owner's
+  rewrite 2026; Tselikov's notice kept in its header.
+- TBs and `component.toml`: BSD-3-Clause, the owner. Faults: each under the licence of the file
+  it patches.
+- The docs of this folder (the Markdown files): CC BY 4.0, the owner (`NOTICE`).
+- Data sheets: third-party documents with their own status (`datasheets/index.md`).

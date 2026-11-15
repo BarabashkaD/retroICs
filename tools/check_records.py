@@ -2,17 +2,22 @@
 # SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
 """Record checker: IDs defined once, every reference resolvable, source IDs registered.
 
-Usage: python -B tools/check_records.py [--legacy FILE] [--docs DIR]
+Usage: python -B tools/check_records.py [--repo DIR] [--records DIR ...] [--external NAME=DIR ...]
 
-Inputs, relative to the repository root:
+Inputs, relative to the repository root (--repo, default this repo):
   docs/record-ids.md  registry table  | Prefix | Home | Status | IDs |
-                      Status: here (defined in ics/**/record.md), pending (home does not exist
-                      yet, nothing checked), external (defined in another repo; checked only with
-                      --docs). IDs: optional comma list; the row then covers only those IDs of
-                      the prefix (a prefix may be split over several rows).
+                      Home: <repo>/<path>; the `here` rows all name this repo. Status: here
+                      (defined in this repo), pending (home does not exist yet, nothing checked),
+                      external (defined in the repo <repo>; checked only with --external
+                      <repo>=DIR, else one NOTE per repo), retired (Home "-": defined nowhere here
+                      any more; never defined again, references allowed). IDs: optional comma
+                      list; the row then covers only those IDs of the prefix (a prefix may be split
+                      over several rows); an empty list covers the whole prefix.
   docs/sources.md     source table    | ID | Home | Kind |   (ID in brackets, e.g. [C78])
-  ics/**/record.md    records; an ID is defined by the first cell of a table row.
-  ics/**/*.md         every markdown file: its record ID and bracket source ID references.
+  <records>/**/record.md   records (--records, default ics); an ID is defined by the first cell of
+                      a table row. The Home file of a `here` row defines IDs too, but only of its
+                      own prefix (a board record that is not named record.md).
+  <records>/**/*.md   every markdown file: its record ID and bracket source ID references.
 
 Output: one line per problem, or PASS records. Lines starting with NOTE are not problems.
 """
@@ -21,6 +26,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -28,13 +34,14 @@ ID_RE = r"[A-Z][A-Z0-9]{1,9}(?:-DEV)?-[DEM]?\d+"
 ID_FULL = re.compile(ID_RE)
 # a reference in prose: not part of a longer word or bracket token like [AP-62]
 ID_REF = re.compile(r"(?<![\w\[\-/])(" + ID_RE + r")(?![\w\-])")
-# a bracket source ID: a Latin or Cyrillic capital first ([C78], [ГФ24]) or at least four digits
-# first ([7490], [74198]); not a bit range ([15:8]), a short number ([12]) or a markdown link
+# a bracket source ID: a Latin or Cyrillic capital first ([C78], [ВГ75]) or at least four digits
+# first ([8275], [74198]); not a bit range ([15:8]), a short number ([12]) or a markdown link
 BRACKET = re.compile(r"\[((?:[A-ZА-ЯЁ][A-Za-zА-Яа-яЁё0-9]*|\d{4,}[A-Za-z0-9]*)"
                      r"(?:-[A-Za-z0-9…]+)*)\](?!\()")
-STATUSES = ("here", "pending", "external")
+STATUSES = ("here", "pending", "external", "retired")
 KINDS = ("vendor", "board", "listing", "comparison-only")
-SILENT_HEAD = re.compile(r"^#### SILENT \((.+?)\)\s*$")
+# a section of one prefix: "## SILENT (CRT)" (two to four "#")
+SECTION_HEAD = re.compile(r"^#{2,4} (.+?) \((.+?)\)\s*$")
 
 
 @dataclass(frozen=True)
@@ -75,22 +82,19 @@ def defined_ids(md_text: str) -> set[str]:
 _LIST_ID = re.compile(r"^- (" + ID_RE + r")(?![\w])")
 
 
-def legacy_ids(md_text: str) -> set[str]:
-    out = defined_ids(md_text)
-    for line in md_text.splitlines():
-        m = _LIST_ID.match(line)
-        if m:
-            out.add(m.group(1))
-    return out
-
-
 def silent_bullets(md_text: str, prefix: str) -> list[str]:
+    return section_bullets(md_text, "SILENT", prefix)
+
+
+def section_bullets(md_text: str, title: str, prefix: str) -> list[str]:
+    """The bullets (continuation lines joined) of the section '<title> (<prefix>)', up to the
+    next heading."""
     bullets: list[str] = []
     inside = False
     for line in md_text.splitlines():
-        m = SILENT_HEAD.match(line)
+        m = SECTION_HEAD.match(line)
         if m:
-            inside = m.group(1) == prefix
+            inside = m.group(1) == title and m.group(2) == prefix
             continue
         if line.startswith("#"):
             inside = False
@@ -102,6 +106,13 @@ def silent_bullets(md_text: str, prefix: str) -> list[str]:
         elif line.strip() and line[:1] in " \t" and bullets:
             bullets[-1] += " " + line.strip()
     return bullets
+
+
+def bullet_ids(bullet: str, prefix: str) -> list[str]:
+    """The IDs of the prefix that a bullet names before its first ': ' ("CRT-25: ...",
+    "DMA-7 / DMA-29: ...")."""
+    head = bullet.split(": ", 1)[0]
+    return [i for i in ID_REF.findall(head) if prefix_of(i) == prefix]
 
 
 def load_registry(path: Path) -> dict[str, RegistryRow]:
@@ -157,10 +168,45 @@ def _source_known(sid: str, sources: set[str]) -> bool:
     return any(s.endswith("…") and sid.startswith(s[:-1]) for s in sources)
 
 
-def check(repo_root: Path, legacy: Path | None, docs_root: Path | None) -> list[str]:
+def own_repo(reg: dict[str, RegistryRow]) -> tuple[str | None, list[str]]:
+    """The repo named by the `here` rows (the first segment of their Home), and the problems."""
+    repos = sorted({r.home.partition("/")[0] for r in reg.values() if r.status == "here"})
+    if len(repos) > 1:
+        return None, ["docs/record-ids.md: the here rows name more than one repo (%s)"
+                      % ", ".join(repos)]
+    return (repos[0] if repos else None), []
+
+
+def home_file(root: Path, row: RegistryRow, own: str | None) -> Path | None:
+    """The Home of a row as a file of this repo; None for another repo's home."""
+    repo, _, rel = row.home.partition("/")
+    return Path(root) / rel if own is not None and repo == own and rel else None
+
+
+def external_ids(external: Mapping[str, Path], problems: list[str]) -> dict[str, set[str]]:
+    """{repo: the IDs that the table rows of its .md files define} for each --external root."""
+    out: dict[str, set[str]] = {}
+    for name, d in sorted(external.items()):
+        d = Path(d)
+        if not d.is_dir():
+            problems.append("external root %s (%s) not found" % (name, d.name))
+            continue
+        ids: set[str] = set()
+        for md in d.rglob("*.md"):
+            ids |= defined_ids(md.read_text(encoding="utf-8", errors="replace"))
+        out[name] = ids
+    return out
+
+
+def not_checked_note(repo: str) -> str:
+    return "NOTE: IDs of %s not checked (no --external %s=DIR)" % (repo, repo)
+
+
+def check(repo_root: Path, external: Mapping[str, Path] | None = None,
+          record_dirs: Sequence[str] = ("ics",)) -> list[str]:
     root = Path(repo_root)
+    external = dict(external or {})
     problems: list[str] = []
-    notes: list[str] = []
     reg_path = root / "docs" / "record-ids.md"
     if not reg_path.is_file():
         return ["docs/record-ids.md: missing"]
@@ -168,46 +214,57 @@ def check(repo_root: Path, legacy: Path | None, docs_root: Path | None) -> list[
         reg = load_registry(reg_path)
     except ValueError as e:
         return ["docs/record-ids.md: %s" % e]
+    own, own_problems = own_repo(reg)
+    if own_problems:
+        return own_problems
     src_path = root / "docs" / "sources.md"
     sources: set[str] | None = None
     if src_path.is_file():
         sources = load_sources(src_path, problems)
+    dirs = [root / d for d in record_dirs]
 
-    # definitions
+    # definitions: every record.md under the record folders, and each `here` row's Home file
     defined: dict[str, str] = {}
     texts: dict[str, str] = {}
-    for rec in sorted((root / "ics").rglob("record.md")) if (root / "ics").is_dir() else []:
-        rel = rec.relative_to(root).as_posix()
-        text = rec.read_text(encoding="utf-8")
-        texts[rel] = text
+
+    def define(path: Path, only_prefix: str | None) -> None:
+        rel = path.relative_to(root).as_posix()
+        text = texts.get(rel)
+        if text is None:
+            text = texts[rel] = path.read_text(encoding="utf-8")
         for cells in table_rows(text):
             first = _clean(cells[0])
             if not ID_FULL.fullmatch(first):
                 continue
+            if only_prefix is not None and prefix_of(first) != only_prefix:
+                continue
             if first in defined:
-                problems.append("%s: %s defined twice (also in %s)" % (rel, first, defined[first]))
+                if defined[first] != rel:
+                    problems.append("%s: %s defined twice (also in %s)" % (rel, first, defined[first]))
                 continue
             defined[first] = rel
             row = resolve(reg, first)
             if row is None:
                 problems.append("%s: %s has a prefix that is not in the registry" % (rel, first))
+            elif row.status == "retired":
+                problems.append("%s: %s is retired (it left this repo); never define it again"
+                                % (rel, first))
             elif row.status != "here":
                 problems.append("%s: %s is registered as %s (home %s), not here"
                                 % (rel, first, row.status, row.home))
 
-    ext_seen = False
-    ext_defined: set[str] | None = None
-    if docs_root is not None:
-        d = Path(docs_root)
-        if not d.is_dir():
-            problems.append("docs root %s not found" % d.name)
-        else:
-            ext_defined = set()
-            for md in d.rglob("*.md"):
-                ext_defined |= defined_ids(md.read_text(encoding="utf-8", errors="replace"))
+    records = sorted({rec for d in dirs if d.is_dir() for rec in d.rglob("record.md")})
+    for rec in records:
+        define(rec, None)
+    for row in reg.values():
+        f = home_file(root, row, own) if row.status == "here" else None
+        if f is not None and f.is_file() and f not in records:
+            define(f, row.prefix)
+
+    ext_defined = external_ids(external, problems)
+    unchecked: set[str] = set()
 
     def judge(id_: str, where: str) -> None:
-        nonlocal ext_seen
         row = resolve(reg, id_)
         if row is None:
             problems.append("%s: %s has a prefix that is not in the registry" % (where, id_))
@@ -215,15 +272,17 @@ def check(repo_root: Path, legacy: Path | None, docs_root: Path | None) -> list[
             if id_ not in defined:
                 problems.append("%s: %s is not defined in any record" % (where, id_))
         elif row.status == "external":
-            if ext_defined is None:
-                ext_seen = True
-            elif id_ not in ext_defined:
-                problems.append("%s: %s is not defined in the docs root (home %s)"
-                                % (where, id_, row.home))
+            repo = row.home.partition("/")[0]
+            if repo in ext_defined:
+                if id_ not in ext_defined[repo]:
+                    problems.append("%s: %s is not defined in %s (home %s)"
+                                    % (where, id_, repo, row.home))
+            elif repo not in external:
+                unchecked.add(repo)
 
-    # references in every markdown file under ics/ (records, READMEs, equivalents, AGENTS, indexes)
+    # references in every markdown file under the record folders
     refs: dict[str, str] = {}
-    for md in sorted((root / "ics").rglob("*.md")) if (root / "ics").is_dir() else []:
+    for md in sorted({m for d in dirs if d.is_dir() for m in d.rglob("*.md")}):
         rel = md.relative_to(root).as_posix()
         refs[rel] = texts.get(rel) or md.read_text(encoding="utf-8")
     for rel, text in refs.items():
@@ -238,23 +297,26 @@ def check(repo_root: Path, legacy: Path | None, docs_root: Path | None) -> list[
                 if len(sid) > 1 and not _source_known(sid, sources):
                     problems.append("%s: source [%s] is not in docs/sources.md" % (rel, sid))
 
-    # legacy gate
-    if legacy is not None:
-        for id_ in sorted(legacy_ids(Path(legacy).read_text(encoding="utf-8"))):
-            judge(id_, "legacy")
+    return problems + [not_checked_note(r) for r in sorted(unchecked)]
 
-    if ext_seen and docs_root is None:
-        notes.append("NOTE: board IDs not checked (no --docs): their definitions are in another repo")
-    return problems + notes
+
+def _external_arg(text: str) -> tuple[str, Path]:
+    name, sep, path = text.partition("=")
+    if not sep or not name or not path:
+        raise argparse.ArgumentTypeError("want NAME=DIR, got %r" % text)
+    return name, Path(path)
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--legacy", type=Path, help="the legacy record whose IDs must all be accounted for")
-    ap.add_argument("--docs", type=Path, help="checkout of the docs repo, to check external IDs")
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parent.parent)
+    ap.add_argument("--records", action="append", metavar="DIR",
+                    help="a folder of records and their docs, relative to --repo (repeatable; "
+                         "default ics)")
+    ap.add_argument("--external", action="append", type=_external_arg, default=[],
+                    metavar="NAME=DIR", help="a checkout of the repo NAME, to check its IDs")
     args = ap.parse_args(argv)
-    out = check(args.repo, args.legacy, args.docs)
+    out = check(args.repo, dict(args.external), tuple(args.records or ("ics",)))
     for line in out:
         print(line)
     bad = [l for l in out if not l.startswith("NOTE")]

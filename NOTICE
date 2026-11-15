@@ -1,17 +1,40 @@
 retroICs
 Copyright (c) 2026, Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
 
-Contains retroICs / retroMachines by Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD, BSD-3-Clause and CC BY 4.0. Credit to Dmitry Veremeev (BarabashkaD) must be kept in copies and derived works.
+Contains retroICs by Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD, BSD-3-Clause and CC BY 4.0.
 
-The owner's code is under BSD-3-Clause (LICENSE, LICENSES/BSD-3-Clause.txt). The owner's docs
-(records, equivalents, implementation notes, AGENTS files, the files under docs/) are under CC BY 4.0
-(LICENSES/CC-BY-4.0.txt).
+The licences require keeping the copyright notice (BSD-3-Clause) and the attribution (CC BY 4.0)
+in copies and derived works.
 
-Third-party files keep their own licence, named in each file's header and in LICENSES/. None is in
-the repository yet; these come when the models are imported (planned):
-- CC BY 3.0 (LICENSES/CC-BY-3.0.txt): the die-derived 8080 model and its upstream author's header.
-- LicenseRef-Tselikov-BSD (LICENSES/LicenseRef-Tselikov-BSD.txt): the 8257 and 8275 models, which
-  derive from Dmitry Tselikov's code.
+The owner's files: every Markdown file is under CC BY 4.0 (LICENSES/CC-BY-4.0.txt), every other
+file under BSD-3-Clause (LICENSE, LICENSES/BSD-3-Clause.txt). The exceptions are the third-party
+files and the source documents below.
 
-Source documents (data sheets) keep their own status, written in each datasheets/index.md. They are
-not relicensed.
+Third-party files keep their own licence, named in each file's header and in LICENSES/:
+- ics/intel/8080a/rtl/upstream/k580vm80a.v, the die-derived 8080 model by Vslav (1801BM1), 2014:
+  CC BY 3.0 (LICENSES/CC-BY-3.0.txt), the author's notice in its header kept as it is. Taken from
+  MiSTer-devel/Apogee_MiSTer rtl/k580vm80a.v at 4b37da2, line endings changed from CRLF to LF,
+  otherwise unchanged. A later version by the author: https://github.com/1801BM1/vm80a.
+- ics/intel/8257/rtl/intel_8257.v and ics/intel/8275/rtl/intel_8275.v: derived from Dmitry
+  Tselikov's k580vt57.v and k580vg75.sv (the latter with Sorgelig's modifications) of
+  MiSTer-devel/Apogee_MiSTer at 4b37da2. The owner rewrote both to the Intel data sheets (2026);
+  kept from the base: the 8257's register write decoding, the 8275's row buffers and FIFOs,
+  parameter state machine and status byte layout. They stay under Tselikov's licence as derived
+  works (SPDX LicenseRef-Tselikov-BSD, LICENSES/LicenseRef-Tselikov-BSD.txt, the LICENSE.TXT his
+  notice names), with his notice kept as it is (trailing whitespace removed), his copyright line
+  and the owner's; Sorgelig is named as a contributor in the 8275 header. The module names changed
+  (k580vt57, k580vg75 to intel_8257, intel_8275, in comments too), and one header line names that
+  licence text.
+
+Faults (faults/*.patch, git diff output) have no header: each is under the licence of the file it
+patches.
+
+Builds: a bitstream or netlist that includes intel_8257.v or intel_8275.v must carry Tselikov's
+copyright line, the conditions and the disclaimer (LICENSES/LicenseRef-Tselikov-BSD.txt). One that
+includes k580vm80a.v must credit Vslav (1801BM1) and name CC BY 3.0 with its URI
+(https://creativecommons.org/licenses/by/3.0/). The owner's BSD-3-Clause parts carry the owner's
+copyright line and the licence (LICENSE).
+
+Source documents (the data sheets) are third-party copyrighted documents, not licensed by this repo.
+They are kept as archival copies, each with its status in its datasheets/index.md, and are removed
+on request (open an issue).

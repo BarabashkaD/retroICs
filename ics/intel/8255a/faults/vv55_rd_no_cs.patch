@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8255a/rtl/intel_8255a.v b/ics/intel/8255a/rtl/intel_8255a.v
+index 6e56a0d..70a3f5d 100644
+--- a/ics/intel/8255a/rtl/intel_8255a.v
++++ b/ics/intel/8255a/rtl/intel_8255a.v
+@@ -39,7 +39,7 @@ wire a_m1 = mode[6:5] == 2'b01;
+ wire a_m0 = mode[6:5] == 2'b00;
+ wire a_in = mode[4], cu_in = mode[3], b_m1 = mode[2], b_in = mode[1], cl_in = mode[0];
+ wire stba_n = pc_i[4], acka_n = pc_i[6], stbb_n = pc_i[2], ackb_n = pc_i[2];
+-wire rd_a = !cs_n && !rd_n && a == 2'd0;
++wire rd_a = !rd_n && a == 2'd0;
+ wire rd_b = !cs_n && !rd_n && a == 2'd1;
+ wire wr_a = !cs_n && !wr_n && a == 2'd0;
+ wire wr_b = !cs_n && !wr_n && a == 2'd1;

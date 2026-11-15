@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8257/rtl/intel_8257.v b/ics/intel/8257/rtl/intel_8257.v
+index de0ef08..99ebf1f 100644
+--- a/ics/intel/8257/rtl/intel_8257.v
++++ b/ics/intel/8257/rtl/intel_8257.v
+@@ -128,7 +128,7 @@ always @(posedge clk) begin
+         //---------------- slave: a register write completes on IOW↑ ([C78] 12-105)
+         if (iow_n_i && !iow_q && w_cs) begin
+             if (w_a[3]) begin
+-                if (w_a[2:0] == 3'd0) begin                 // SILENT: other A2-A0 with A3 = 1 ignored
++                if (1'b1) begin                 // SILENT: other A2-A0 with A3 = 1 ignored
+                     mode <= w_d; ff <= 1'b0; top <= 2'd0;
+                     if (!w_d[7]) begin upd <= 1'b0; reload <= 1'b0; end
+                 end

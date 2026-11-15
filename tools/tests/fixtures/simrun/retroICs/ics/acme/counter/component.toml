@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# Test fixture of simrun (tools/tests/test_simrun_run.py): a counter IC with one test and three faults.
+[component]
+name = "acme/counter"
+kind = "ic"
+title = "Test counter"
+reproduces = "counter"
+fidelity = "datasheet"
+interface = 1
+
+[rtl]
+top = "acme_counter"
+files = ["rtl/acme_counter.v"]
+iverilog_flags = ["-g2005"]
+
+[[test]]
+name = "count"
+tier = "quick"
+top = "tb_acme_counter"
+files = ["tb/tb_acme_counter.v", "tb/acme_ce_gen.v"]
+params = { N = 10 }
+timeout_s = 120
+
+[[negative]]
+test = "count"
+fault = "faults/count_stuck.patch"
+expect = "ERROR: counter: count 0 after * ce"
+
+# anywhere: the count check prints first ("count 23 after 10 ce"); the hold check is this fault's own
+[[negative]]
+test = "count"
+fault = "faults/ce_ignored.patch"
+expect = "ERROR: counter: changed without ce"
+match = "anywhere"
+
+[[negative]]
+test = "count"
+fault = "faults/ce_gen_never.patch"
+expect = "FATAL: counter: timeout"

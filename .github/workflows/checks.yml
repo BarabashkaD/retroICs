@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
 # Lint: the tools' own tests, the record checker and the privacy checker (commit history included).
+# Quick: Icarus Verilog 13.0, simrun's simulation tests, the TBs of tier quick (without faults).
 name: checks
 
 on:
   pull_request:
     branches: [main]
+  # every push (side branches too: no pull request until a side branch is ready)
   push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -53,3 +54,25 @@ jobs:
       - name: Privacy (working tree and every commit)
         if: github.event_name != 'pull_request'
         run: python -B tools/check_privacy.py --all
+
+  quick:
+    name: quick
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - uses: ./.github/actions/setup-iverilog
+      - name: simrun simulation tests (Icarus required)
+        env:
+          SIMRUN_REQUIRE_IVERILOG: '1'
+        run: python -B -m unittest discover -s tools/tests -p test_simrun_run.py -v
+      - name: TBs of tier quick
+        env:
+          PYTHONPATH: tools
+        run: python -B -m simrun run ics --tier quick

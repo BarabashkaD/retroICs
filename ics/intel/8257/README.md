@@ -11,8 +11,11 @@ read, write and verify cycles.
 
 ## Model status
 
-RTL in the fork's `rk86_16` until the RTL is imported: `k580vt57.v` of karabas-go-core-rk86
-(https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`, `src/rtl/rk86_16/`).
+`rtl/intel_8257.v` was rewritten by the owner to the Intel 8257 data sheet (2026) from Dmitry
+Tselikov's `k580vt57.v` of MiSTer-devel/Apogee_MiSTer at `4b37da2`; kept from that base: the
+register write decoding by {F/L, A3-A0}; the module renamed (`k580vt57` to `intel_8257`, in
+comments too). It stays under Tselikov's licence as a derived work. `tb/tb_vt57.v`,
+`tb/tb_vt57_func.v` and `faults/` are the owner's. Manifest `component.toml`.
 
 ## Equivalents
 
@@ -28,5 +31,9 @@ Details: `equivalents.md`.
 
 ## Licence
 
-The docs of this folder: CC BY 4.0 (`NOTICE`). Data sheets keep their own status
-(`datasheets/index.md`).
+- `rtl/intel_8257.v`: LicenseRef-Tselikov-BSD (`LICENSES/LicenseRef-Tselikov-BSD.txt`), Dmitry
+  Tselikov 2011 and the owner's rewrite 2026; Tselikov's notice kept in its header.
+- TBs and `component.toml`: BSD-3-Clause, the owner. Faults: each under the licence of the file
+  it patches.
+- The docs of this folder (the Markdown files): CC BY 4.0, the owner (`NOTICE`).
+- Data sheets: third-party documents with their own status (`datasheets/index.md`).

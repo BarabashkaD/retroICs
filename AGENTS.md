@@ -1,17 +1,18 @@
 # AGENTS.md
 
 Instructions for coding agents in `retroICs`. Read `docs/agents/global.md` (the L0 rules) and
-`docs/agents/review-checklist.md` first. They apply to every repo of the family.
+`docs/agents/review-checklist.md` first. They apply to every repo that reads them.
 
 ## Repository
 
-- IC models of 8080-based home computers, with data sheets, records, equivalents and model notes.
-- Depends on nothing. `retroMachines` (planned) will pin this repo as a submodule; platform repos pin
-  `retroMachines`.
+- IC implementations for building 8080-family and later computers, main focus Intel: each IC with
+  its model, data sheets, record, equivalents and implementation notes. Only an IC with a model here
+  has a folder here.
+- Depends on nothing. Consumers pin it as a git submodule.
 - One IC folder per part: `ics/<vendor>/<part>/` (contract: `docs/conventions.md`). Work on one IC
   needs this repo and that folder only. The folder's own `AGENTS.md` gives its scope and commands.
-- Board records (`board.md` of a computer) live in `retroComputersDocs`, a sibling checkout, found
-  by the `RETRO_DOCS` environment variable (default `../retroComputersDocs`). It is never a submodule.
+- The records of other repos (a board record, a machine's notes) are checked only with a checkout of
+  that repo (`--external <repo>=<checkout>`), never as a submodule.
 - Docs: `README.md`, `docs/conventions.md`, `docs/vendors.md`, `docs/record-ids.md`,
   `docs/sources.md`, `docs/sources-policy.md`, `docs/quickstart.md`, `docs/templates/ic/`.
 
@@ -22,22 +23,34 @@ From the repo root, in PowerShell 7 (`pwsh`). Python 3, standard library only, a
 ```text
 python -B -m unittest discover -s tools/tests -v       the tools' tests
 python -B tools/check_records.py                       registry, records, source IDs
-python -B tools/check_records.py --docs ../retroComputersDocs   also the board IDs (once it exists)
+python -B tools/check_records.py --external <repo>=<checkout>   also the IDs homed in <repo>
 python -B tools/check_privacy.py                       working tree
 python -B tools/check_privacy.py --all                 working tree and every commit
+python -B tools/check_comment_only.py <base> <head>    a header-only commit: header comment lines only,
+                                                       each fault on a changed file the same edit
+python -B tools/check_comment_only.py <base> <head> --paths '<glob>' --anywhere
+                                                       only the matching files; comment lines anywhere
+                                                       and line comments of unchanged code lines
+$env:PYTHONPATH = 'tools'                              then simrun (docs/conventions.md, component.toml):
+python -B -m simrun filelist <component> --format f    file list, dependencies first
+python -B -m simrun trace                              record ID -> tests -> faults -> status
+python -B -m simrun run ics --tier quick [--negative]  the TBs (and faults); Icarus Verilog 13.0
 ```
 
-The command passes on a clean clone. The tests that compare the records with the private legacy
-record (`tools/tests/test_records_split.py` `LegacySplit`, `tools/tests/test_docs.py`
-`test_sources_cover_legacy`) read it from `RETRO_LEGACY_RECORD`; without it they skip with a printed
-reason. CI has no legacy record and keeps `tools/check_records.py` as its gate. The wording test
-(`test_no_private_wording`) reads every file of the working tree (binary files and the official
-licence texts `LICENSES/*.txt` excepted) with generic patterns; when `RETRO_PRIVATE_WORDS` names an
-a file outside the repository (or ignored by git) of more words (one per line), it checks those too, and without it it prints a NOTE.
+`--anywhere` judges each line on its own: in a `.py` file a `#` line inside a multi-line string
+counts as a comment, so a change there passes the check (a limit of the check; read such a diff).
 
-Before changing a record: set RETRO_LEGACY_RECORD to the private legacy record and run the suite;
-the legacy tests must run, not skip. In one command:
-`$env:RETRO_LEGACY_RECORD = '<path>'; python -B -m unittest discover -s tools/tests -v`.
+The simulation tests of `tools/tests/test_simrun_run.py` need Icarus Verilog 13.0 (`IVERILOG`, else
+`PATH`); without it they skip, unless `SIMRUN_REQUIRE_IVERILOG=1` (CI job `quick`).
+
+The command passes on a clean clone. The wording test (`tools/tests/test_private_wording.py`, its
+helpers in `tools/tests/wordscan.py`) reads every file of the working tree (binary files and the
+official licence texts `LICENSES/*.txt` excepted) with generic patterns; when `RETRO_PRIVATE_WORDS`
+names a file outside the repository (or ignored by git) of more words (one per line), it checks
+those too, and without it it prints a NOTE. A word of that list in imported text that is already
+public upstream is exempt only for its file: `WORD_EXEMPT` in `tools/tests/wordscan.py` (path, word,
+reason; a stale entry fails). Exemptions live there, not in `privacy-allow.txt` (which is the
+privacy checker's).
 
 ## Rules for this repo
 

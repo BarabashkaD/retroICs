@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# The die-derived КР580ВМ80А model, byte-identical in rtl/upstream/, under the family-wide name of
+# the wrapper rtl/intel_8080a.v (instance core; docs/conventions.md, "The 8080").
+# No TB of its own yet.
+[component]
+name = "intel/8080a"
+kind = "ic"
+title = "Intel 8080A microprocessor"
+reproduces = "k580vm80a"
+fidelity = "datasheet"
+interface = 1
+record_prefix = "CPU"
+
+[[equivalent]]
+part = "КР580ВМ80А"
+translit = "kr580vm80a"
+level = "unverified"
+
+[rtl]
+top = "intel_8080a"
+files = ["rtl/intel_8080a.v", "rtl/upstream/k580vm80a.v"]
+iverilog_flags = ["-g2005"]

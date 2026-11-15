@@ -1,0 +1,32 @@
+[component]
+name = "intel/8255a"
+kind = "ic"                       # ic | block | machine | adapter | platform
+title = "Intel 8255A programmable peripheral interface"
+reproduces = "i8255a"
+fidelity = "datasheet"            # datasheet | board | extended
+interface = 1
+record_prefix = "PPI"
+
+[[equivalent]]
+part = "К580ВВ55А"
+translit = "k580vv55a"
+level = "unverified"              # drop-in | function | partial | unverified
+
+[rtl]
+top = "intel_8255a"
+files = ["rtl/intel_8255a.v"]
+depends = []
+
+[[test]]
+name = "modes"
+tier = "quick"
+top = "tb_intel_8255a"
+files = ["tb/tb_intel_8255a.v"]
+plusargs = []
+timeout_s = 120
+golden = { file = "golden/modes.txt", compare = "exact" }   # exact | frames | events
+
+[[negative]]
+test = "modes"
+patch = "faults/mode1_ibf_stuck.patch"
+expect = "FAIL PPI-14"

@@ -1,0 +1,11 @@
+diff --git a/ics/acme/counter/tb/acme_ce_gen.v b/ics/acme/counter/tb/acme_ce_gen.v
+index e24ecc9..f2b1979 100644
+--- a/ics/acme/counter/tb/acme_ce_gen.v
++++ b/ics/acme/counter/tb/acme_ce_gen.v
+@@ -8,5 +8,5 @@ module acme_ce_gen (
+ );
+     initial ce = 1'b0;
+     always @(posedge clk)
+-        ce <= en ? ~ce : 1'b0;
++        ce <= 1'b0;
+ endmodule

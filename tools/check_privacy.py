@@ -27,7 +27,7 @@ import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# local paths, lifted from the Pocket's scripts/check_repo.py
+# local paths
 LOCAL_PATH = re.compile(r'(?<![A-Za-z0-9])[A-Za-z]:[\\/]+(?![^\s`\'"]*<)[A-Za-z0-9_.$-]'
                         r'|\\\\[A-Za-z0-9_.-]+\\[A-Za-z0-9_.$-]'
                         r'|/(home|Users|mnt/[a-z])/(?![^\s`\'"]*<)[A-Za-z0-9_.-]+')

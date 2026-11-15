@@ -1,13 +1,15 @@
 # Global agent rules (L0)
 
-These rules apply to every repo of the family: `retroICs`, `retroMachines`, `retroComputersDocs`,
-`retro8080Software` and the platform repos. A repo's `AGENTS.md` (L1) and a component's `AGENTS.md`
-(L2) add to them; they never relax them. Read `review-checklist.md` next to this file as well.
+These rules apply to every repo that reads this file. A repo's `AGENTS.md` (L1) and a component's
+`AGENTS.md` (L2) add to them; they never relax them. Rules for one machine or one platform live in
+that repo's `AGENTS.md`. Read `review-checklist.md` next to this file as well.
 
 ## Source priority
 
-1. Vendor data sheets: Intel and the other makers first, then the Soviet reference sheets.
-2. Original board schematics and magazine publications (Радио, the board makers' documents).
+1. Vendor data sheets: Intel and the other makers first, then the second-source and licensed-copy
+   sheets (the Soviet reference sheets among them).
+2. Schematics and publications of the real systems that use the part (magazine articles, the makers'
+   documents), cited as evidence where the data sheets are silent.
 3. Listings of original ROMs, read as code.
 
 Emulators (MAME, Emu80 and others) and other FPGA cores are never sources of behaviour. They may be
@@ -22,8 +24,8 @@ cited as `comparison-only`, to show how others read a point; a decision never re
 
 - When the sources do not decide a behaviour, the item is SILENT. Record what was searched (document
   and pages), the behaviour chosen and its basis.
-- The basis is the original board (its picture, its timing), then the simplest reading of the data
-  sheet. Never an emulator.
+- The basis is the behaviour of a real system that uses the part (its picture, its timing), cited
+  by its source IDs, then the simplest reading of the data sheet. Never an emulator.
 - Mark the deciding code line with `// SILENT` and the record ID.
 - A SILENT item that only real hardware can settle goes on the hardware check list of its record.
   Simulation never settles it.
@@ -45,7 +47,7 @@ cited as `comparison-only`, to show how others read a point; a decision never re
 - Folder `ics/<vendor>/<part>/`; module and file `<vendor>_<part>`; vendor names from
   `docs/vendors.md`.
 - `<part>` is the vendor's base part number in lower case, without package, speed or temperature
-  marks: `intel/8255a`, `ti/sn7492`.
+  marks: `intel/8255a`, `intel/8080a`.
 - Docs titles use the vendor name ("Intel 8255A programmable peripheral interface"). Soviet names
   appear in Cyrillic with a transliteration, in `equivalents.md` and the README table.
 - Details: `docs/conventions.md`.
@@ -72,12 +74,17 @@ cannot be taken back.
 
 - The owner's code: `SPDX-License-Identifier: BSD-3-Clause` and
   `SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD`.
-- The owner's docs (records, equivalents, implementation notes, board records, AGENTS files): CC BY
-  4.0, stated in `NOTICE`.
+- The owner's files: every Markdown file CC BY 4.0, every other file BSD-3-Clause, stated in
+  `NOTICE`. Exceptions: third-party files and source documents (below).
 - Third-party files keep their licence and their header as they are; their licence text is in
   `LICENSES/` (a `LicenseRef-...` name when SPDX has none). Never relicense a third-party file.
-- Every repo's `NOTICE` and every release package's `LICENSES.md` carry the attribution line of the
-  `NOTICE` of this repo.
+- Every `.v`, `.vh`, `.py` and `.toml` file has its SPDX lines in its header, and every licence
+  pointer of a header names a file under `LICENSES/` (`tools/tests/test_headers.py`; byte-identical
+  copies kept without a header are listed there). A commit that sets headers changes header
+  comment lines only: `tools/check_comment_only.py <base> <head>` passes on it.
+- Each repo's `NOTICE` names that repo only, with its attribution line, and credits the origins of
+  the files whose history began elsewhere. A package that combines repos carries the `NOTICE` of
+  each.
 - Source documents keep their own status in their index; they are not relicensed.
 
 ## Faults and patches
@@ -95,7 +102,7 @@ cannot be taken back.
 | quick | every commit; required PR check | lint, the tools' tests, the TBs without faults |
 | standard | every RTL or TB change | the unit TBs of the changed components with their faults; the system scenarios that use them |
 | full | before merging an RTL PR | everything with every fault; at most two long system scenarios at once |
-| release | before a package | full on the pinned tags, the platform tests, the vendor build, the hardware check list |
+| release | before a package | full on the pinned tags, the consumers' tests, the vendor build, the hardware check list |
 
 - Choose the tests by the files changed. Docs only: lint and the tools' tests.
 - Stop at the first failure. Never run the same long scenario twice at once.

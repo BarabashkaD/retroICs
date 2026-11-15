@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8255a/rtl/intel_8255a.v b/ics/intel/8255a/rtl/intel_8255a.v
+index 6e56a0d..7e4b0da 100644
+--- a/ics/intel/8255a/rtl/intel_8255a.v
++++ b/ics/intel/8255a/rtl/intel_8255a.v
+@@ -103,7 +103,7 @@ always @(posedge clk) begin
+     if (!wr_n) begin wcs <= !cs_n; wa <= a; wd <= d_i; end
+     rda_q <= rd_a; rdb_q <= rd_b;
+     if (reset) begin
+-        mode <= 7'b0011011; la <= 8'h00; lb <= 8'h00; lc <= 8'h00;
++        la <= 8'h00; lb <= 8'h00; lc <= 8'h00;
+         ibfa <= 1'b0; ibfb <= 1'b0; obfa_n <= 1'b1; obfb_n <= 1'b1;
+         intea1 <= 1'b0; intea2 <= 1'b0; inteb <= 1'b0;
+     end else begin

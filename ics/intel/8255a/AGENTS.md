@@ -2,11 +2,11 @@
 
 ## Scope
 
-The Intel 8255A (КР580ВВ55А): its data sheet record, equivalents and data sheet index. RTL in the fork's `rk86_16` (https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`) until the RTL is imported (`k580vv55.v`).
+The Intel 8255A (КР580ВВ55А): its data sheet record, equivalents and data sheet index. RTL, TB and faults: the owner's, written to the Intel data sheet (`README.md`, Model status).
 
 ## Files
 
-`README.md`, `record.md` (PPI-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md`. The RTL, TBs and faults come when the RTL is imported.
+`README.md`, `record.md` (PPI-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md` and the stored data sheets `datasheets/*.pdf`, `component.toml`, `rtl/intel_8255a.v`, `tb/tb_vv55.v`, `faults/*.patch`.
 
 ## Commands
 
@@ -29,4 +29,3 @@ python -B -m unittest discover -s tools/tests -v
 ## Pitfalls
 
 - Emulators ([MAME], [EMU], [APG]) are comparison-only, never a source of behaviour.
-- "Task 1 record" names the section "Timing reference for 0.8.0 (Task 1 record)": a in the 8224 record, b in the 8257 record, d in the 8275 record; c (the 8275 pins on the boards) is board wiring, in the RK86 board record (planned, retroComputersDocs).

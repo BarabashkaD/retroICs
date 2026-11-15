@@ -4,3 +4,8 @@
 # The agent attribution trailer of commit messages. [@] keeps this line itself free of an
 # email-shaped string.
 trailer ^Co-Authored-By: Claude [A-Za-z0-9. ]+ <noreply[@]anthropic[.]com>$ # agent attribution trailer of commit messages
+#
+# The upstream author's address in the CC BY 3.0 attribution header of the imported 8080 model,
+# kept byte for byte (the licence requires the attribution). The literal stops before the domain's
+# dot, so this file itself holds no email-shaped string.
+allow ics/intel/8080a/rtl/upstream/k580vm80a.v :: copyright (c) 2014 by 1801BM1@gmail # CC BY 3.0 attribution header of the imported 8080 model

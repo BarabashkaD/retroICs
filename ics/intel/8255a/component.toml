@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+[component]
+name = "intel/8255a"
+kind = "ic"
+title = "Intel 8255A programmable peripheral interface"
+reproduces = "i8255a"
+fidelity = "datasheet"
+interface = 1
+record_prefix = "PPI"
+
+[[equivalent]]
+part = "КР580ВВ55А"
+translit = "kr580vv55a"
+level = "unverified"
+
+[rtl]
+top = "intel_8255a"
+files = ["rtl/intel_8255a.v"]
+iverilog_flags = ["-g2005"]
+
+[[test]]
+name = "vv55"
+tier = "quick"
+top = "tb_vv55"
+files = ["tb/tb_vv55.v"]
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_no_output_reset.patch"
+expect = "ERROR: vv55: mode set: latches not cleared"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_bsr_bit.patch"
+expect = "ERROR: vv55: bsr set"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_ibf_on_rd_fall.patch"
+expect = "ERROR: vv55: mode 1 input: ibf / intr during rd"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_obf_ack_ignored.patch"
+expect = "ERROR: vv55: mode 1 output: obf after ack"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_mode2_buffer.patch"
+expect = "ERROR: vv55: mode 2: port A buffer enabled without ack"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_pc_upper_mode0_only.patch"
+expect = "ERROR: vv55: port C byte write at "
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_intr_pulse.patch"
+expect = "ERROR: vv55: intr pulse after rd: mode 1 port A input"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_mode_set_keeps_status.patch"
+expect = "ERROR: vv55: mode set: status ibf not cleared"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_wr_no_cs.patch"
+expect = "ERROR: vv55: cs: wr without cs"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_rd_no_cs.patch"
+expect = "ERROR: vv55: cs: rd without cs"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_byte_write_inte.patch"
+expect = "ERROR: vv55: byte write inte: inte cleared by C7h"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_pc3_mixed.patch"
+expect = "ERROR: vv55: pc3 mixed: 8Eh pins"
+
+[[negative]]
+test = "vv55"
+fault = "faults/vv55_reset_keeps_mode.patch"
+expect = "ERROR: vv55: reset: ports not inputs after a RESET pulse"

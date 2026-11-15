@@ -1,0 +1,16 @@
+diff --git a/ics/intel/8275/rtl/intel_8275.v b/ics/intel/8275/rtl/intel_8275.v
+index 1ca87ae..fa222c3 100644
+--- a/ics/intel/8275/rtl/intel_8275.v
++++ b/ics/intel/8275/rtl/intel_8275.v
+@@ -214,9 +214,9 @@ always @(posedge clk) begin
+             ch <= chn;
+             t_ln = ln;
+             if (chn == h_last + 8'd1) begin                                          // HRTC rises
+-                hrtc <= 1'b1; eor <= 1'b0; fr <= 4'd0;
++                hrtc <= 1'b1; eor <= 1'b0;
+                 if (ln >= p_l) begin
+-                    t_ln = 4'd0;
++                    t_ln = 4'd0; fr <= 4'd0;
+                     t_rn = rw >= row_last ? 7'd0 : rw + 7'd1;
+                     rw <= t_rn;
+                     row_start(t_rn);

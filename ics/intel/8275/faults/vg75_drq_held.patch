@@ -1,0 +1,12 @@
+diff --git a/ics/intel/8275/rtl/intel_8275.v b/ics/intel/8275/rtl/intel_8275.v
+index 1ca87ae..1789ea9 100644
+--- a/ics/intel/8275/rtl/intel_8275.v
++++ b/ics/intel/8275/rtl/intel_8275.v
+@@ -189,7 +189,6 @@ always @(posedge clk) begin
+     //---------------- light pen: the counters at the LPEN rising edge ([D79] 1-165, 1-177)
+     if (lpen && !lpen_q) begin lp_c <= ch[6:0]; lp_r <= rw[5:0]; lp <= 1'b1; end
+     //---------------- DMA WR↓ with DACK: DRQ falls ([D79] Fig. 30 tRQ)
+-    if (!wr_n && wr_q && !dack_n) drq <= 1'b0;
+     //---------------- CCLK↓
+     if (cclk) begin
+         if (preset) begin                       // S12 (decided): the top left corner of the frame cycle =

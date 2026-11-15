@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8257/rtl/intel_8257.v b/ics/intel/8257/rtl/intel_8257.v
+index de0ef08..51c438d 100644
+--- a/ics/intel/8257/rtl/intel_8257.v
++++ b/ics/intel/8257/rtl/intel_8257.v
+@@ -202,7 +202,7 @@ always @(posedge clk) begin
+                 ad[uch] <= ad[uch] + 16'd1;
+                 tr[uch][13:0] <= tr[uch][13:0] - 14'd1;
+             end
+-            if (utc && mode[6] && !(mode[7] && uch == 2'd2)) mode[uch] <= 1'b0;     // TC stop
++            if (utc && mode[6] && !(mode[7] && uch == 2'd2)) mode[3:0] <= 4'd0;     // TC stop
+             if (mode[4]) top <= uch + 2'd1;                                           // rotating priority
+             if (uupd) upd <= 1'b0;                                                    // the reload cycle is over
+         end

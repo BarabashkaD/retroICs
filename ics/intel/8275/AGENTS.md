@@ -2,11 +2,11 @@
 
 ## Scope
 
-The Intel 8275 (КР580ВГ75): its data sheet record, equivalents and data sheet index. RTL in the fork's `rk86_16` (https://github.com/BarabashkaD/karabas-go-core-rk86, branch `rk86-16mhz`) until the RTL is imported (`k580vg75.v`).
+The Intel 8275 (КР580ВГ75): its data sheet record, equivalents and data sheet index. RTL rewritten by the owner to the Intel data sheets from Tselikov's `k580vg75.sv` with Sorgelig's modifications (MiSTer-devel/Apogee_MiSTer `4b37da2`; kept: the row buffers and FIFOs, the parameter state machine, the status byte layout; Tselikov's licence); TBs and faults the owner's (`README.md`, Model status).
 
 ## Files
 
-`README.md`, `record.md` (CRT-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md`. The RTL, TBs and faults come when the RTL is imported.
+`README.md`, `record.md` (CRT-n items, SILENT, assumptions checked), `equivalents.md`, `implementation.md`, `datasheets/index.md` and the stored data sheets `datasheets/*.pdf`, `component.toml`, `rtl/intel_8275.v`, `tb/tb_vg75.v`, `tb/tb_vg75_dma.v`, `tb/tb_vg75_attr.v`, `faults/*.patch`.
 
 ## Commands
 
@@ -29,4 +29,4 @@ python -B -m unittest discover -s tools/tests -v
 ## Pitfalls
 
 - Emulators ([MAME], [EMU], [APG]) are comparison-only, never a source of behaviour.
-- "Task 1 record" names the section "Timing reference for 0.8.0 (Task 1 record)": a in the 8224 record, b in the 8257 record, d in the 8275 record; c (the 8275 pins on the boards) is board wiring, in the RK86 board record (planned, retroComputersDocs).
+- The timing section of `record.md` ("Timing (data sheet)") and the 8257 record's "Transfer states" are cited by their names.

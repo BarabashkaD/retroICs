@@ -16,4 +16,4 @@ PPI-D1..PPI-D6 are differences between two Intel editions, not between equivalen
 
 ## Sources
 
-No Soviet reference sheet in the collection (the RK86 record lists Soviet reference data for КР580ВТ57 / ВГ75 / ВВ55А as missing).
+No Soviet reference sheet in the collection; none was found.

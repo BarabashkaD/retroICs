@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# Test fixture of simrun (tools/tests/test_simrun_run.py): a block that depends on acme/counter of
+# the retroICs fixture, with a fault of that dependency.
+[component]
+name = "demo/ticker"
+kind = "block"
+title = "Test ticker"
+reproduces = "ticker"
+fidelity = "board"
+interface = 1
+
+[rtl]
+top = "demo_ticker"
+files = ["rtl/demo_ticker.v"]
+depends = ["acme/counter"]
+iverilog_flags = ["-g2005"]
+
+[[test]]
+name = "tick"
+tier = "standard"
+top = "tb_demo_ticker"
+files = ["tb/tb_demo_ticker.v"]
+
+[[negative]]
+test = "tick"
+fault = "acme/counter:count_stuck"
+expect = "ERROR: ticker: count 0 after 20 clocks"

@@ -1,0 +1,267 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+[component]
+name = "intel/8257"
+kind = "ic"
+title = "Intel 8257 programmable DMA controller"
+reproduces = "i8257"
+fidelity = "datasheet"
+interface = 1
+record_prefix = "DMA"
+
+[[equivalent]]
+part = "КР580ВТ57"
+translit = "kr580vt57"
+level = "unverified"
+
+[rtl]
+top = "intel_8257"
+files = ["rtl/intel_8257.v"]
+iverilog_flags = ["-g2005"]
+
+[[test]]
+name = "vt57"
+tier = "quick"
+top = "tb_vt57"
+files = ["tb/tb_vt57.v"]
+
+[[test]]
+name = "vt57_func"
+tier = "quick"
+top = "tb_vt57_func"
+files = ["tb/tb_vt57_func.v"]
+ids = [
+    "DMA-1",
+    "DMA-2",
+    "DMA-3",
+    "DMA-4",
+    "DMA-5",
+    "DMA-7",
+    "DMA-8",
+    "DMA-9",
+    "DMA-11",
+    "DMA-12",
+    "DMA-13",
+    "DMA-14",
+    "DMA-15",
+    "DMA-16",
+    "DMA-20",
+    "DMA-22",
+    "DMA-26",
+]
+
+# match anywhere: the extra state delays S4, so MEMW and HRQ (theta rise of S4, rel 31) are
+# late before DACK (theta fall of S4, rel 36); 'memw at 31' is vt57_memw_end_late's own text
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_extra_state.patch"
+expect = "ERROR: vt57: dack at 36"
+match = "anywhere"
+
+# match anywhere: S4 to S1 without DRQ keeps HRQ high at the theta rise of S4 (rel 31, the
+# HRQ check) before the early S1 shows in the period check
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_s4_to_s1.patch"
+expect = "ERROR: vt57: period 36"
+match = "anywhere"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_address_early.patch"
+expect = "ERROR: vt57: address"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_one_edge.patch"
+expect = "ERROR: vt57: aen rise 0"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_aen_gap.patch"
+expect = "ERROR: vt57: aen at 31"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_hrq_late.patch"
+expect = "ERROR: vt57: latency 36"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_no_ext_write.patch"
+expect = "ERROR: vt57: memw at 13 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_no_autoload_copy.patch"
+expect = "ERROR: vt57: address at 4 (transfer 2340)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_cycle_bits_swapped.patch"
+expect = "ERROR: vt57: ior at 13 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_s0_no_hlda.patch"
+expect = "ERROR: vt57: latency 9 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_adstb_long.patch"
+expect = "ERROR: vt57: adstb at 13 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_ior_end_s4.patch"
+expect = "ERROR: vt57: ior at 31 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_memw_end_late.patch"
+expect = "ERROR: vt57: memw at 31 (transfer 0)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_tc_s4.patch"
+expect = "ERROR: vt57: tc at 22 (transfer 2339)"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_count_frozen.patch"
+expect = "ERROR: vt57: count after 8 transfers"
+
+[[negative]]
+test = "vt57"
+fault = "faults/vt57_upd_kept.patch"
+expect = "ERROR: vt57: update flag after the reload"
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_priority_fixed.patch"
+expect = "ERROR: vt57f: rotating: order: transfer 1 channel 0, expected 1"
+ids = ["DMA-2"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_read_strobes.patch"
+expect = "ERROR: vt57f: read cycle: memr at 13 (transfer 0)"
+ids = ["DMA-4"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_ready_ignored.patch"
+expect = "ERROR: vt57f: ready: memw at 31 (transfer 0)"
+ids = ["DMA-7"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_tc_stop_ignored.patch"
+expect = "ERROR: vt57f: tc stop: 6 transfers, expected 4"
+ids = ["DMA-9"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_autoload_early.patch"
+expect = "ERROR: vt57f: tc output: address at 22 (transfer 2)"
+ids = ["DMA-8"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_mark_tc_only.patch"
+expect = "ERROR: vt57f: mark: mark at 22 (transfer 127)"
+ids = ["DMA-11"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_ff_not_reset.patch"
+expect = "ERROR: vt57f: first/last: read after a mode write 12, expected the low byte AA"
+ids = ["DMA-12", "DMA-22"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_hlda_lost_s0.patch"
+expect = "ERROR: vt57f: hlda lost: hrq at 40 (transfer 1)"
+ids = ["DMA-15"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_cont_no_hlda.patch"
+expect = "ERROR: vt57f: hlda lost: S1 while HLDA is low"
+ids = ["DMA-15"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_verify_wait.patch"
+expect = "ERROR: vt57f: verify: the transfers do not end"
+ids = ["DMA-5"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_b2b_no_reload.patch"
+expect = "ERROR: vt57f: autoload: address at 4 (transfer 2)"
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_address_switch.patch"
+expect = "ERROR: vt57f: priority: address at 36"
+ids = ["DMA-1"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_s0_no_return.patch"
+expect = "ERROR: vt57f: s0 return: hrq 1 at HRQ rise + 27"
+ids = ["DMA-16"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_mode_any_a.patch"
+expect = "ERROR: vt57f: addressing: address after writes to A = 9-15: register 0 reads 1218, expected 1234"
+ids = ["DMA-20"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_status_a_only.patch"
+expect = "ERROR: vt57f: addressing: read at A = 11: ff, expected the status 01"
+ids = ["DMA-20"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_illegal_strobes.patch"
+expect = "ERROR: vt57f: illegal cycle: ior at 13 (transfer 0)"
+ids = ["DMA-26"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_rotate_b2b_only.patch"
+expect = "ERROR: vt57f: rotating: order: transfer 0 channel 0, expected 1"
+ids = ["DMA-2"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_tcstop_all.patch"
+expect = "ERROR: vt57f: tc stop: 0 transfers, expected 1"
+ids = ["DMA-9"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_reset_keeps_up.patch"
+expect = "ERROR: vt57f: reset: UP and TC1 after RESET: status 10, expected 00"
+ids = ["DMA-13"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_reload_any_channel.patch"
+expect = "ERROR: vt57f: autoload: after a channel 0 cycle between: status 00, expected 10"
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_enable_ignored.patch"
+expect = "ERROR: vt57f: enables: DACK of a disabled channel"
+ids = ["DMA-3"]
+
+[[negative]]
+test = "vt57_func"
+fault = "faults/vt57f_cs_in_master.patch"
+expect = "ERROR: vt57f: cs: no DACK0 after a mode write in S2"
+ids = ["DMA-14"]

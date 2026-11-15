@@ -1,0 +1,212 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+[component]
+name = "intel/8275"
+kind = "ic"
+title = "Intel 8275 programmable CRT controller"
+reproduces = "i8275"
+fidelity = "datasheet"
+interface = 1
+record_prefix = "CRT"
+
+[[equivalent]]
+part = "КР580ВГ75"
+translit = "kr580vg75"
+level = "unverified"
+
+[rtl]
+top = "intel_8275"
+files = ["rtl/intel_8275.v"]
+iverilog_flags = ["-g2005"]
+
+[[test]]
+name = "vg75"
+tier = "quick"
+top = "tb_vg75"
+files = ["tb/tb_vg75.v"]
+
+[[test]]
+name = "vg75_dma"
+tier = "quick"
+top = "tb_vg75_dma"
+files = ["tb/tb_vg75_dma.v"]
+ids = ["CRT-21", "CRT-22", "CRT-23", "CRT-25", "CRT-26", "CRT-27", "CRT-28"]
+
+[[test]]
+name = "vg75_attr"
+tier = "quick"
+top = "tb_vg75_attr"
+files = ["tb/tb_vg75_attr.v"]
+ids = ["CRT-30", "CRT-31", "CRT-32", "CRT-33", "CRT-36"]
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_hrtc_7.patch"
+expect = "ERROR: vg75: hrtc: power-up: HRTC high 12 ce16, expected 24"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_vrtc_short.patch"
+expect = "ERROR: vg75: vrtc: power-up: 0 VRTC rises in 720 ce16, expected 10"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_ir_without_ie.patch"
+expect = "ERROR: vg75: ir: power-up: status bit 5 (IR) 1, expected 0"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_ic_never.patch"
+expect = "ERROR: vg75: ic: 00h with 2 parameters, then 27h: status bit 3 (IC) 0, expected 1"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_preset_ignored.patch"
+expect = "ERROR: vg75: preset: HRTC high while the counters are held"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_preset_row0.patch"
+expect = "ERROR: vg75: preset: VRTC not high after the first CCLK fall after the releasing command"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_lc_mode.patch"
+expect = "ERROR: vg75: lc: row 0 line 0 char 0: LC 0, expected 9 (M = 1)"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_lpen_no_flag.patch"
+expect = "ERROR: vg75: light pen: after LPEN rise: status bit 4 (LP) 0, expected 1"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_underrun_restart_late.patch"
+expect = "ERROR: vg75: preset after an underrun: the first DRQ 10224 ce16 after the resume CCLK fall"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_preset_release_write.patch"
+expect = "ERROR: vg75: preset: VRTC high while the counters are held, after a parameter write"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_preset_release_read.patch"
+expect = "ERROR: vg75: preset: VRTC high while the counters are held, after a status read"
+
+[[negative]]
+test = "vg75"
+fault = "faults/vg75_ir_needs_ve.patch"
+expect = "ERROR: vg75: ir: after 40h (Stop Display): 0 IRQ rises in a frame, expected 1"
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_burst_count_ignored.patch"
+expect = "ERROR: vg75: burst length: BB = 00, SSS = 001: row 6 fill: burst 0 has 78 transfers, expected 1 (CRT-21, [D79] 1-172, 1-179)"
+ids = ["CRT-21"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_burst_space_ignored.patch"
+expect = "ERROR: vg75: burst space: BB = 00, SSS = 001: row 6 fill: DRQ 12 ce16 after the last WR rise of burst 0, expected 73..84 (CRT-21, [D79] 1-172, 1-179)"
+ids = ["CRT-21"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_drq_held.patch"
+expect = "ERROR: vg75: drq at wr: row 2 fill transfer 0: DRQ high 2 clk after the DMA WR fall, expected low from WR fall + 2 clk to WR rise (CRT-22, [D79] 1-184 Fig. 30, D9)"
+ids = ["CRT-22"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_byte_on_wr_fall.patch"
+expect = "ERROR: vg75: byte: row 0 line 0 char 0: CC 21, expected 20 (CRT-23, [D79] 1-185)"
+ids = ["CRT-23"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_underrun_ignored.patch"
+expect = "ERROR: vg75: underrun: VSP low at line 61 char 0, expected high from the row 6 start to the row 30 start (CRT-25, [D79] 1-172, 1-180, S11)"
+ids = ["CRT-25"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_underrun_restart_late.patch"
+expect = "ERROR: vg75: underrun: the first DRQ -1 ce16 after the row 30 start (the last retrace row), expected 0..84 (the row 0 fill) (CRT-25, [D79] 1-172, 1-180, S11)"
+ids = ["CRT-25"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_underrun_space_redrq.patch"
+expect = "ERROR: vg75: underrun at the end of a burst space: 1 DRQ rises from the row 6 start to the row 30 start, expected 0 (DMA stopped until the last retrace row)"
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_fifo_off.patch"
+expect = "ERROR: vg75: fifo: during row 1 (the row 2 fill): 78 transfers, expected 79 (CRT-27, [D79] 1-165, 1-176)"
+ids = ["CRT-27"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_stop_dma_ignored.patch"
+expect = "ERROR: vg75: stop dma: during row 4 (the row 5 fill): 78 transfers, expected 12 (CRT-26, [D79] 1-175)"
+ids = ["CRT-26"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_fifo_ptr_row_only.patch"
+expect = "ERROR: vg75: fifo: row 2 line 1 char 1: CC 00, expected 24 (CRT-27, [D79] 1-165, 1-176)"
+ids = ["CRT-27"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_du_self_clear.patch"
+expect = "ERROR: vg75: underrun: after the row 8 start (set at the row 6 start, no read since): status bit 1 (DU) 0, expected 1 (CRT-25, [D79] 1-172, 1-180, S11)"
+ids = ["CRT-25"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_attr_own_position.patch"
+expect = "ERROR: vg75: non-transparent: row 2 line 9 char 1: LTEN 1, expected 0 (CRT-28, [D79] 1-176)"
+ids = ["CRT-28"]
+
+[[negative]]
+test = "vg75_dma"
+fault = "faults/vg75_fifo_overrun_keeps_first.patch"
+expect = "ERROR: vg75: fifo: row 8 line 0 char 0: CC 29, expected 49 (CRT-27, [D79] 1-165, 1-176)"
+ids = ["CRT-27"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_ca_table_swapped.patch"
+expect = "ERROR: vg75: char attribute: UUUU = 9: row 0 line 9 char 0 (code c0): LA 1, expected 2 (frame 66) (CRT-30, [D79] 1-174)"
+ids = ["CRT-30"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_fa_not_reset.patch"
+expect = "ERROR: vg75: field attribute: UUUU = 9: row 0 line 0 char 0 (code 42): RVV 1, expected 0 (frame 153) (CRT-31, [D79] 1-175)"
+ids = ["CRT-31"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_cursor_no_blink.patch"
+expect = "ERROR: vg75: cursor: CC = 00, cursor at row 0 char 5: row 0 line 0 char 5 (code 2f): RVV 1, expected 0 (frame 8) (CRT-33, [D79] 1-177, S3, S4)"
+ids = ["CRT-33"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_blink_16.patch"
+expect = "ERROR: vg75: blink: CC = 00, cursor at row 2 char 5: row 0 line 1 char 3 (code e6): VSP 0, expected 1 (frame 16) (CRT-36, [D79] 1-173, 1-175, S3)"
+ids = ["CRT-36"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_ca_underline_field.patch"
+expect = "ERROR: vg75: interaction: UUUU = 9: row 1 line 0 char 11 (code e4): HGLT 1, expected 0 (frame 156) (CRT-32, [D79] 1-176)"
+ids = ["CRT-32"]
+
+[[negative]]
+test = "vg75_attr"
+fault = "faults/vg75_underrun_restart_late.patch"
+expect = "ERROR: vg75: cc: an underrun in the row 2 fill: row 0 line 0 char 0 (code 63): CC 29, expected 63"

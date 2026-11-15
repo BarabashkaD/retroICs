@@ -1,0 +1,13 @@
+diff --git a/ics/intel/8275/rtl/intel_8275.v b/ics/intel/8275/rtl/intel_8275.v
+index 1ca87ae..60c4151 100644
+--- a/ics/intel/8275/rtl/intel_8275.v
++++ b/ics/intel/8275/rtl/intel_8275.v
+@@ -165,7 +165,7 @@ task row_start(input [6:0] rn);
+         if (rn == row_last) ustop <= 1'b0;             // S11 (decided 2026-11-11, D11): the row 0 fill runs
+         if (rn == 7'd0) ublank <= 1'b0;                // the display of the new frame
+         t_ur = text_row(rn, p_s, r_last) && fill && !filled;        // SILENT S11: the moment of the underrun check
+-        if (t_ur) begin du <= 1'b1; ustop <= 1'b1; ublank <= 1'b1; end
++        if (t_ur) begin du <= 1'b1; ustop <= 1'b1; ublank <= 1'b1; end else du <= 1'b0;
+         if (text_row(rn, p_s, r_last)) dsel <= !dsel;
+         if ((rn == row_last || text_row(rn + 7'd1, p_s, r_last)) && dmae && !t_ur && (!ustop || rn == row_last)
+             && (rn == row_last || !fstop)) begin
